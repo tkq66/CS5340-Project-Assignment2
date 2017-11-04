@@ -5,13 +5,19 @@ from sys import argv
 
 def initialize(k, inputData):
     height, width, channels = inputData.shape
-    initCov = None
     initMixCoeff = None
 
     h = np.random.choice(np.arange(height), k, replace=False)
     w = np.random.choice(np.arange(width), k, replace=False)
     initMean = inputData[h, w, :]
 
+    initCov = np.random.uniform(0, 3, size=(k, channels, channels))
+
+    for i,x in enumerate(initCov):
+        x = x.T.dot(x)
+        initCov[i]=x
+
+    print(initCov)
     return initMean, initCov, initMixCoeff
 
 
