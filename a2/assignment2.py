@@ -20,7 +20,10 @@ def initialize(k, inputData):
     # Initialize mixing coefficient
     initMixCoeff = np.repeat((1 / k), k)
 
-    return initMean, initCov, initMixCoeff
+    # Calculate log likelihood for the init values
+    initLogLikelihood = evaluateLogLikelihood(initMean, initCov, initMixCoeff)
+
+    return initMean, initCov, initMixCoeff, initLogLikelihood
 
 
 def expectation(mean, cov, mixCoeff):
@@ -33,7 +36,7 @@ def maximization():
     pass
 
 
-def evaliateLogLikelihood():
+def evaluateLogLikelihood(mean, cov, mixCoeff):
     pass
 
 
@@ -42,7 +45,7 @@ def main():
     fileName = argv[2]
 
     inputData = imread(fileName)
-    initMean, initCov, initMixCoeff = initialize(k, inputData)
+    initMean, initCov, initMixCoeff, initLogLikelihood = initialize(k, inputData)
 
 if __name__ == "__main__":
     main()
