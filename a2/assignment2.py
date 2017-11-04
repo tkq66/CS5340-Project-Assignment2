@@ -3,8 +3,15 @@ import numpy as np
 from sys import argv
 
 
-def initialize():
-    pass
+def initialize(k, channels, input):
+    initMean = np.zeros((k, channels))
+    initCov = None
+    initMixCoeff = None
+
+    for i in range(k):
+        
+
+    return initMean, initCov, initMixCoeff
 
 
 def expectation():
@@ -18,8 +25,9 @@ def maximization():
 def main():
     k = argv[1]
     fileName = argv[2]
-    inputData = np.rollaxis(imread(fileName), 2, 0)
-    channels, height, width = inputData.shape
+    inputData = imread(fileName)
+    height, width, channels = inputData.shape
+    initMean, initCov, initMixCoeff = initialize(k, inputData)
 
 
 if __name__ == "__main__":
