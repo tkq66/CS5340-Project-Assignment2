@@ -27,14 +27,26 @@ def initialize(k, inputData):
     return initMean, initCov, initMixCoeff, initLogLikelihood
 
 
-def expectation(mean, cov, mixCoeff):
+def expectation(x, mean, cov, mixCoeff):
     responsibility = None
+    h, w, c = x.shape
+    data = x.reshape(h * w, c)
+
+    N = []
+    for i in range(mean.shape[0]):
+        N.append(multivariate_normal.pdf(data, mean=mean[i, :], cov=cov[i, :]))
+    N = np.array(N)
+    N = N.T
+    numerator = mixCoeff * N
+    denominator = numerator.sum(axis=0)
+    responsibility = numerator / denominator
 
     return responsibility
 
 
 def maximization():
-    pass
+    maximization = None
+    return maximization
 
 
 def evaluateLogLikelihood(inputData, mean, cov, mixCoeff, k):
@@ -55,9 +67,7 @@ def main():
 
     inputData = imread(fileName)
     initMean, initCov, initMixCoeff, initLogLikelihood = initialize(k, inputData)
-    print("mean", initMean)
-    print("cov", initCov)
-    print(initLogLikelihood)
+    responsibility = expectation(inputData, initMean, initCov, initMixCoeff)
 
 
 if __name__ == "__main__":
