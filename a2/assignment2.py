@@ -1,5 +1,6 @@
 from cv2 import imread
 import numpy as np
+from scipy.stats import multivariate_normal
 from sys import argv
 
 
@@ -21,7 +22,7 @@ def initialize(k, inputData):
     initMixCoeff = np.repeat((1 / k), k)
 
     # Calculate log likelihood for the init values
-    initLogLikelihood = evaluateLogLikelihood(initMean, initCov, initMixCoeff)
+    initLogLikelihood = evaluateLogLikelihood(inputData, initMean, initCov, initMixCoeff)
 
     return initMean, initCov, initMixCoeff, initLogLikelihood
 
@@ -36,8 +37,8 @@ def maximization():
     pass
 
 
-def evaluateLogLikelihood(mean, cov, mixCoeff):
-    pass
+def evaluateLogLikelihood(inputData, mean, cov, mixCoeff):
+    return
 
 
 def main():
@@ -46,6 +47,9 @@ def main():
 
     inputData = imread(fileName)
     initMean, initCov, initMixCoeff, initLogLikelihood = initialize(k, inputData)
+    print("mean", initMean)
+    print("cov", initCov)
+
 
 if __name__ == "__main__":
     main()
