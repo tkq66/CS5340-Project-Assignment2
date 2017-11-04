@@ -5,12 +5,15 @@ from sys import argv
 
 def initialize(k, inputData):
     height, width, channels = inputData.shape
-    initCov = None
     initMixCoeff = None
 
+    # Initialize the mean
     h = np.random.choice(np.arange(height), k, replace=False)
     w = np.random.choice(np.arange(width), k, replace=False)
     initMean = inputData[h, w, :]
+
+    # Initialzie covariance
+    initCov = np.random.normal(0, 5, (3, 3))
 
     return initMean, initCov, initMixCoeff
 
