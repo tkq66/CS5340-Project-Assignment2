@@ -13,7 +13,10 @@ def initialize(k, inputData):
     initMean = inputData[h, w, :]
 
     # Initialzie covariance
-    initCov = np.random.normal(0, 5, (3, 3))
+    initCov = np.random.uniform(0, 3, size=(k, channels, channels))
+    for i, x in enumerate(initCov):
+        x = x.T.dot(x)
+        initCov[i] = x
 
     return initMean, initCov, initMixCoeff
 
