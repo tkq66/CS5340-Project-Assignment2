@@ -2,8 +2,6 @@ from cv2 import imread
 import numpy as np
 from sys import argv
 
-k = 2
-
 
 def initialize():
     pass
@@ -18,7 +16,8 @@ def maximization():
 
 
 def main():
-    fileName = argv[1]
+    k = argv[1]
+    fileName = argv[2]
     inputData = np.rollaxis(imread(fileName), 2, 0)
     channels, height, width = inputData.shape
 
