@@ -5,7 +5,6 @@ from sys import argv
 
 def initialize(k, inputData):
     height, width, channels = inputData.shape
-    initMixCoeff = None
 
     # Initialize the mean
     h = np.random.choice(np.arange(height), k, replace=False)
@@ -17,6 +16,9 @@ def initialize(k, inputData):
     for i, x in enumerate(initCov):
         x = x.T.dot(x)
         initCov[i] = x
+
+    # Initialize mixing coefficient
+    initMixCoeff = np.repeat((1 / k), k)
 
     return initMean, initCov, initMixCoeff
 
