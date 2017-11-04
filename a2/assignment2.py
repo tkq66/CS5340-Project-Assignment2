@@ -23,11 +23,17 @@ def initialize(k, inputData):
     return initMean, initCov, initMixCoeff
 
 
-def expectation():
-    pass
+def expectation(mean, cov, mixCoeff):
+    responsibility = None
+
+    return responsibility
 
 
 def maximization():
+    pass
+
+
+def evaliateLogLikelihood():
     pass
 
 
