@@ -13,7 +13,7 @@ def initialize(k, inputData):
     initMean = inputData[h, w, :]
 
     # Initialzie covariance
-    initCov = np.random.uniform(0, 3, size=(k, channels, channels))
+    initCov = np.random.uniform(0, 50, size=(k, channels, channels))
     for i, x in enumerate(initCov):
         x = x.T.dot(x)
         initCov[i] = x
@@ -22,7 +22,7 @@ def initialize(k, inputData):
     initMixCoeff = np.repeat((1 / k), k)
 
     # Calculate log likelihood for the init values
-    initLogLikelihood = evaluateLogLikelihood(inputData, initMean, initCov, initMixCoeff)
+    initLogLikelihood = evaluateLogLikelihood(inputData, initMean, initCov, initMixCoeff, k)
 
     return initMean, initCov, initMixCoeff, initLogLikelihood
 
@@ -37,8 +37,16 @@ def maximization():
     pass
 
 
-def evaluateLogLikelihood(inputData, mean, cov, mixCoeff):
-    return
+def evaluateLogLikelihood(inputData, mean, cov, mixCoeff, k):
+    height, width, channels = inputData.shape
+    formattedInput = inputData.reshape(height * width, channels).astype(np.float64)
+
+    auxInput = np.zeros(height * width)
+    for i in range(k):
+        auxInput += mixCoeff[i] * multivariate_normal.pdf(formattedInput, mean=mean[i], cov=cov[i])
+    logLikelihood = np.sum(np.log(auxInput))
+
+    return -logLikelihood
 
 
 def main():
@@ -49,6 +57,7 @@ def main():
     initMean, initCov, initMixCoeff, initLogLikelihood = initialize(k, inputData)
     print("mean", initMean)
     print("cov", initCov)
+    print(initLogLikelihood)
 
 
 if __name__ == "__main__":
