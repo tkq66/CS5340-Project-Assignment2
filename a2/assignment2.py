@@ -27,65 +27,44 @@ def initialize(k, inputData):
     return initMean, initCov, initMixCoeff, initLogLikelihood
 
 
-def expectation(x, mean, cov, mixCoeff):
+def expectation(k, x, mean, cov, mixCoeff):
     responsibility = None
     h, w, c = x.shape
-    data = x.reshape(h * w, c)
+    totalPixels = h * w
+    data = x.reshape(totalPixels, c)
 
-    N = []
-    for i in range(mean.shape[0]):
-        N.append(multivariate_normal.pdf(data, mean=mean[i, :], cov=cov[i, :]))
-    N = np.array(N)
-    N = N.T
-    numerator = mixCoeff * N
-    denominator = numerator.sum(axis=1) # for each N add values of K
-    denominator = denominator.reshape(1,-1) # convert to row vector
-    responsibility = numerator / denominator.T # denominator.T is a column vector thus can numerator divide by column
-    print(denominator.shape)
+    numerator = np.empty((k, totalPixels))
+    for i in range(k):
+        numerator[i] = mixCoeff[i] * multivariate_normal.pdf(data, mean=mean[i, :], cov=cov[i, :])
+    denominator = numerator.sum(axis=0)  # for each N add values of K
+    responsibility = numerator / denominator  # denominator.T is a column vector thus can numerator divide by column
     return responsibility
 
 
-def maximization(responsibility, x, means, ):
-    new_cov = None
-    new_mixcoeff = None
-    N_k = responsibility.sum(axis=0) # for each K add values of N
-    x = x.reshape(responsibility.shape[0],-1)
-    print(x.shape)
+def maximization(k, responsibility, x, means, ):
+    h, w, c = x.shape
+    totalPixels = h * w
+    data = x.reshape(totalPixels, c)
+
+    N_k = responsibility.sum(axis=1)  # for each K add values of N
+
     # CALCULATING NEW MEANS
-    new_means = []
-
-    for i in range(responsibility.shape[1]): # for each k
-        numerator = 0
-        for index,pix in enumerate(x):
-            numerator+= responsibility[index,i]*pix
-        denominator = N_k[i]
-        value = numerator/denominator
-        new_means.append(value)
-
-    new_means = np.array(new_means)
+    tempMean = np.empty((k, totalPixels, c))
+    for i in range(k):
+        tempMean[i] = (data.T * responsibility[i]).T
+    new_means = (tempMean.sum(axis=1).T / N_k).T
 
     # CALCULATING NEW COVARIANCES
-    new_cov = []
-    for i in range(responsibility.shape[1]): # for each k
-        numerator = 0
-        for index,pix in enumerate(x):
-            temp = np.array(pix-new_means[i])
-            temp = temp.reshape(1,-1)
-            temp = responsibility[index,i] * temp * temp.T
-            numerator+= temp
-        denominator = N_k[i]
-        value = numerator/denominator
-        new_cov.append(value)
-    new_cov = np.array(new_cov)
+    new_cov = np.empty((k, c, c))
+    for i in range(k):
+        difference = data - new_means[i]
+        mod = (responsibility[i] * difference.T) / N_k[i]
+        new_cov[i] = mod.dot(difference)
 
     # CALCULATING NEW MIX COEF
-    new_mixcoeff = []
-    N = responsibility.shape[0]
-    for i in N_k:
-        new_mixcoeff.append(i/N)
-    new_mixcoeff = np.array(new_mixcoeff)
+    new_mixCoeff = N_k / totalPixels
 
-    return new_means, new_cov, new_mixcoeff
+    return new_means, new_cov, new_mixCoeff
 
 
 def evaluateLogLikelihood(inputData, mean, cov, mixCoeff, k):
@@ -106,17 +85,9 @@ def main():
 
     inputData = imread(fileName)
     initMean, initCov, initMixCoeff, initLogLikelihood = initialize(k, inputData)
-    print('init means=', initMean.shape)
-    print('init cov=', initCov.shape)
-    print('init mixcoef=', initMixCoeff.shape)
-    responsibility = expectation(inputData, initMean, initCov, initMixCoeff)
-    new_means, new_cov, new_mix = maximization(responsibility,inputData,initMean)
-    print('new means=',new_means.shape)
-    print('new cov=', new_cov.shape)
-    print('new mixcoef=', new_mix.shape)
+    responsibility = expectation(k, inputData, initMean, initCov, initMixCoeff)
+    new_means, new_cov, new_mix = maximization(k, responsibility, inputData, initMean)
 
-    print('old=\n',initMean)
-    print('\nnew=\n',new_means)
 
 if __name__ == "__main__":
     main()
