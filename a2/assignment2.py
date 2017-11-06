@@ -1,4 +1,5 @@
 from cv2 import imread
+import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
 from sys import argv
@@ -98,7 +99,6 @@ def segmentImage(k, inputData, mean, cov):
     pixelsClassAssignment = np.argmax(rawKImageClassProb, axis=0)
     # Apply the mean of the k onto the pixel
     maskedImage = mean[pixelsClassAssignment].reshape(inputData.shape)
-
     return maskedImage
 
 
@@ -120,6 +120,12 @@ def main():
             old_cov = initializeCov(k, channels)
             continue
         print(i, logLikelihood)
+
+        new_img = segmentImage(k, inputData, old_mean, old_cov)
+        plt.imshow(new_img)
+        plt.pause(0.1)
+        plt.draw()
+
         responsibility = expectation(k, inputData, old_mean, old_cov, old_mix)
         mean, cov, mix = maximization(k, responsibility, inputData, old_mean)
         old_mean = mean
