@@ -85,6 +85,23 @@ def evaluateLogLikelihood(k, inputData, mean, cov, mixCoeff):
     return -logLikelihood
 
 
+def segmentImage(k, inputData, mean, cov):
+    h, w, c = inputData.shape
+    totalPixels = h * w
+    formattedInput = inputData.reshape(totalPixels, c).astype(np.float64)
+
+    # For each pixel, calculate probability for each k
+    rawKImageClassProb = np.empty((k, totalPixels))
+    for i in range(k):
+        rawKImageClassProb[i] = multivariate_normal.pdf(formattedInput, mean=mean[i], cov=cov[i])
+    # Choose the k given the max probability
+    pixelsClassAssignment = np.argmax(rawKImageClassProb, axis=0)
+    # Apply the mean of the k onto the pixel
+    maskedImage = mean[pixelsClassAssignment].reshape(inputData.shape)
+
+    return maskedImage
+
+
 def main():
     k = int(argv[1])
     fileName = argv[2]
