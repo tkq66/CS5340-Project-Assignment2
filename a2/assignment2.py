@@ -1,6 +1,7 @@
 from cv2 import imread, imwrite
 from em import EM
 import json
+from k_means import KMeans
 from sys import argv
 import uuid
 
@@ -8,33 +9,35 @@ k = 2  # Segment foreground and background
 sessionId = str(uuid.uuid4())
 
 
-def outputDicttoJson(fileName, model):
-    with open(fileName, "w") as fp:
+def output_dict_to_json(file_name, model):
+    with open(file_name, "w") as fp:
         json.dump(model, fp)
 
 
-def outputSegmentation(fileName, images):
-    maskedImage, maskedImageInverted, segmentedImage, segmentedImageInverted = images
-    filteTitle, extension = fileName.split(".")
-    maskFileTitle = "output/" + sessionId + "-" + filteTitle + "-mask-" + "." + extension
-    maskInvFileTitle = "output/" + sessionId + "-" + filteTitle + "-mask-inv-" + "." + extension
-    segFileTitle = "output/" + sessionId + "-" + filteTitle + "-seg-" + "." + extension
-    segInvFileTitle = "output/" + sessionId + "-" + filteTitle + "-seg-inv-" + "." + extension
-    imwrite(maskFileTitle, maskedImage)
-    imwrite(maskInvFileTitle, maskedImageInverted)
-    imwrite(segFileTitle, segmentedImage)
-    imwrite(segInvFileTitle, segmentedImageInverted)
+def output_segmentation(file_name, images):
+    masked_img, masked_img_inv, seg_img, seg_im_inv = images
+    filte_title, extension = file_name.split(".")
+    mask_file_title = "output/" + sessionId + "-" + filte_title + "-mask-" + "." + extension
+    mask_inv_file_title = "output/" + sessionId + "-" + filte_title + "-mask-inv-" + "." + extension
+    seg_file_title = "output/" + sessionId + "-" + filte_title + "-seg-" + "." + extension
+    seg_inv_file_title = "output/" + sessionId + "-" + filte_title + "-seg-inv-" + "." + extension
+    imwrite(mask_file_title, masked_img)
+    imwrite(mask_inv_file_title, masked_img_inv)
+    imwrite(seg_file_title, seg_img)
+    imwrite(seg_inv_file_title, seg_im_inv)
 
 
 def main():
-    fileName = argv[1]
-    inputData = imread(fileName)
+    file_name = argv[1]
+    input_data = imread(file_name)
 
-    em = EM()
-    modelObject, images = em.run(k, inputData, verbose=True)
-
-    outputDicttoJson("model.json", modelObject)
-    outputSegmentation(fileName, images)
+    km = KMeans()
+    model_object, images = km.run(k, input_data, verbose=True)
+    # em = EM()
+    # model_object, images = em.run(k, input_data, verbose=True)
+    #
+    # output_dict_to_json("model.json", model_object)
+    # output_segmentation(file_name, images)
 
 
 if __name__ == "__main__":
