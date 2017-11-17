@@ -7,6 +7,7 @@ from sys import argv
 import uuid
 
 k = 2  # Segment foreground and background
+sessionId = str(uuid.uuid4())
 
 
 def initializeMean(k, height, width, inputData):
@@ -117,10 +118,10 @@ def outputDicttoJson(fileName, model):
 
 def outputSegmentation(image, maskTuple, fileName):
     filteTitle, extension = fileName.split(".")
-    maskFileTitle = "output/" + filteTitle + "-mask-" + str(uuid.uuid4()) + "." + extension
-    maskInvFileTitle = "output/" + filteTitle + "-mask-inv-" + str(uuid.uuid4()) + "." + extension
-    segFileTitle = "output/" + filteTitle + "-seg-" + str(uuid.uuid4()) + "." + extension
-    segInvFileTitle = "output/" + filteTitle + "-seg-inv-" + str(uuid.uuid4()) + "." + extension
+    maskFileTitle = "output/" + filteTitle + "-mask-" + sessionId + "." + extension
+    maskInvFileTitle = "output/" + filteTitle + "-mask-inv-" + sessionId + "." + extension
+    segFileTitle = "output/" + filteTitle + "-seg-" + sessionId + "." + extension
+    segInvFileTitle = "output/" + filteTitle + "-seg-inv-" + sessionId + "." + extension
     maskedImage, maskedImageInverted = maskTuple
     segmentedImage = np.multiply(image, maskedImage)
     segmentedImageInverted = np.multiply(image, maskedImageInverted)
