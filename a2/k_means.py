@@ -73,7 +73,7 @@ class KMeans:
         # Train data, assuming convergen4ce criteria is logLikelihood = 0
         height, width, channels = input_data.shape
         old_mean = self.initialize_mean(k, height, width, input_data)
-        while distortion != 0:
+        while True:
             r = self.assignment(k, old_mean, input_data)
             output = self.segment_image(k, r, input_data)
             # Check for convergence and output the model and the file
@@ -92,5 +92,6 @@ class KMeans:
             if patience_counter > patience:
                 modelObject = {"means": old_mean.tolist()}
                 return modelObject, output
+            
             mean = self.update(k, r, input_data, old_mean)
             old_mean = mean

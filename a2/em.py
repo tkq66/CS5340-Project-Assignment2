@@ -116,7 +116,7 @@ class EM:
         height, width, channels = inputData.shape
         _, old_cov, old_mix = self.initialize(k, inputData)
         old_mean = self.initializeMean(k, height, width, inputData) if seed_mean is not None else np.asarray(seed_mean)
-        while logLikelihood != 0:
+        while True:
             try:
                 logLikelihood = self.evaluateLogLikelihood(k, inputData, old_mean, old_cov, old_mix)
             except np.linalg.LinAlgError:
