@@ -118,10 +118,10 @@ def outputDicttoJson(fileName, model):
 
 def outputSegmentation(image, maskTuple, fileName):
     filteTitle, extension = fileName.split(".")
-    maskFileTitle = "output/" + filteTitle + "-mask-" + sessionId + "." + extension
-    maskInvFileTitle = "output/" + filteTitle + "-mask-inv-" + sessionId + "." + extension
-    segFileTitle = "output/" + filteTitle + "-seg-" + sessionId + "." + extension
-    segInvFileTitle = "output/" + filteTitle + "-seg-inv-" + sessionId + "." + extension
+    maskFileTitle = "output/" + sessionId + "-" + filteTitle + "-mask-" + "." + extension
+    maskInvFileTitle = "output/" + sessionId + "-" + filteTitle + "-mask-inv-" + "." + extension
+    segFileTitle = "output/" + sessionId + "-" + filteTitle + "-seg-" + "." + extension
+    segInvFileTitle = "output/" + sessionId + "-" + filteTitle + "-seg-inv-" + "." + extension
     maskedImage, maskedImageInverted = maskTuple
     segmentedImage = np.multiply(image, maskedImage)
     segmentedImageInverted = np.multiply(image, maskedImageInverted)
