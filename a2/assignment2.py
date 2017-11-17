@@ -1,9 +1,10 @@
-from cv2 import imread
+from cv2 import imread, imwrite
 import json
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
 from sys import argv
+import uuid
 
 k = 2  # Segment foreground and background
 
@@ -100,9 +101,13 @@ def segmentImage(k, inputData, mean, cov):
         rawKImageClassProb[i] = multivariate_normal.pdf(formattedInput, mean=mean[i], cov=cov[i])
     # Choose the k given the max probability
     pixelsClassAssignment = np.argmax(rawKImageClassProb, axis=0)
-    # Apply the mean of the k onto the pixel
-    maskedImage = mean[pixelsClassAssignment].reshape(inputData.shape)
-    return maskedImage
+    # Black and white mask
+    mask = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
+    maskInverted = np.array([[1.0, 1.0, 1.0], [0.0, 0.0, 0.0]])
+    # Apply the mask of k onto the pixel
+    maskedImage = mask[pixelsClassAssignment].reshape(inputData.shape)
+    maskedImageInverted = maskInverted[pixelsClassAssignment].reshape(inputData.shape)
+    return maskedImage, maskedImageInverted
 
 
 def outputDicttoJson(fileName, model):
@@ -110,8 +115,19 @@ def outputDicttoJson(fileName, model):
         json.dump(model, fp)
 
 
-def outputSegmentation(image, mask, fileName):
-    pass
+def outputSegmentation(image, maskTuple, fileName):
+    filteTitle, extension = fileName.split(".")
+    maskFileTitle = "output/" + filteTitle + "-mask-" + str(uuid.uuid4()) + "." + extension
+    maskInvFileTitle = "output/" + filteTitle + "-mask-inv-" + str(uuid.uuid4()) + "." + extension
+    segFileTitle = "output/" + filteTitle + "-seg-" + str(uuid.uuid4()) + "." + extension
+    segInvFileTitle = "output/" + filteTitle + "-seg-inv-" + str(uuid.uuid4()) + "." + extension
+    maskedImage, maskedImageInverted = maskTuple
+    segmentedImage = np.multiply(image, maskedImage)
+    segmentedImageInverted = np.multiply(image, maskedImageInverted)
+    imwrite(maskFileTitle, maskedImage * 255)
+    imwrite(maskInvFileTitle, maskedImageInverted * 255)
+    imwrite(segFileTitle, segmentedImage)
+    imwrite(segInvFileTitle, segmentedImageInverted)
 
 
 def main():
@@ -135,8 +151,8 @@ def main():
             old_cov = initializeCov(k, channels)
             continue
 
-        new_img = segmentImage(k, inputData, old_mean, old_cov)
-        plt.imshow(new_img)
+        maskTuple = segmentImage(k, inputData, old_mean, old_cov)
+        plt.imshow(maskTuple[0])
         plt.pause(0.1)
         plt.draw()
 
@@ -151,7 +167,7 @@ def main():
         if patienceCounter > patience:
             modelObject = {"means": old_mean.tolist(), "cov": old_cov.tolist(), "mix": old_mix.tolist()}
             outputDicttoJson("model.json", modelObject)
-            outputSegmentation(inputData, new_img, fileName)
+            outputSegmentation(inputData, maskTuple, fileName)
             break
 
         responsibility = expectation(k, inputData, old_mean, old_cov, old_mix)
