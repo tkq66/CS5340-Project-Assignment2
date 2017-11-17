@@ -1,8 +1,11 @@
 from cv2 import imread
+import json
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
 from sys import argv
+
+k = 2  # Segment foreground and background
 
 
 def initializeMean(k, height, width, inputData):
@@ -102,12 +105,24 @@ def segmentImage(k, inputData, mean, cov):
     return maskedImage
 
 
+def outputDicttoJson(fileName, model):
+    with open(fileName, "w") as fp:
+        json.dump(model, fp)
+
+
+def outputSegmentation(image, mask, fileName):
+    pass
+
+
 def main():
-    k = int(argv[1])
-    fileName = argv[2]
+    fileName = argv[1]
 
     # Train data, assuming convergence criteria is logLikelihood = 0
+    oldLogLikelihood = 1000000
     logLikelihood = 1000000
+    patience = 5
+    patienceCounter = 0
+    delta = 1e-6
     inputData = imread(fileName)
     height, width, channels = inputData.shape
     old_mean, old_cov, old_mix = initialize(k, inputData)
@@ -119,12 +134,25 @@ def main():
             print("New covariance matrix is singular. Resetting...")
             old_cov = initializeCov(k, channels)
             continue
-        print(i, logLikelihood)
 
         new_img = segmentImage(k, inputData, old_mean, old_cov)
         plt.imshow(new_img)
         plt.pause(0.1)
         plt.draw()
+
+        # Check for convergence and output the model and the file
+        diff = oldLogLikelihood - logLikelihood
+        print(diff)
+        if diff < delta:
+            patienceCounter += 1
+        else:
+            patienceCounter = 0
+            oldLogLikelihood = logLikelihood
+        if patienceCounter > patience:
+            modelObject = {"means": old_mean.tolist(), "cov": old_cov.tolist(), "mix": old_mix.tolist()}
+            outputDicttoJson("model.json", modelObject)
+            outputSegmentation(inputData, new_img, fileName)
+            break
 
         responsibility = expectation(k, inputData, old_mean, old_cov, old_mix)
         mean, cov, mix = maximization(k, responsibility, inputData, old_mean)
