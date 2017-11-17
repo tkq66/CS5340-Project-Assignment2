@@ -32,12 +32,13 @@ def main():
     input_data = imread(file_name)
 
     km = KMeans()
-    model_object, images = km.run(k, input_data, verbose=True)
-    # em = EM()
-    # model_object, images = em.run(k, input_data, verbose=True)
-    #
-    # output_dict_to_json("model.json", model_object)
-    # output_segmentation(file_name, images)
+    k_means_model_object, images = km.run(k, input_data)
+    seed_mean = k_means_model_object["means"]
+    em = EM()
+    em_model_object, images = em.run(k, input_data, seed_mean=seed_mean, verbose=True)
+
+    output_dict_to_json("model.json", em_model_object)
+    output_segmentation(file_name, images)
 
 
 if __name__ == "__main__":

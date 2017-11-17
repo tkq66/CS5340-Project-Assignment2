@@ -13,24 +13,18 @@ class KMeans:
         w = np.random.choice(np.arange(width), k, replace=False)
         return input_data[h, w, :]
 
-    def initialize(self, k, input_data):
+    def assignment(self, k, mean, input_data):
         h, w, c = input_data.shape
         total_pixels = h * w
         data = input_data.reshape(total_pixels, c)
-        init_mean = self.initialize_mean(k, h, w, input_data)
-        distance = self.calculate_distance(k, init_mean, data)
-        return init_mean, distance
-
-    def assignment(self, k, distance, mean, input_data):
-        h, w, c = input_data.shape
-        total_pixels = h * w
         # Choose the enarest distance
+        distance = self.calculate_distance(k, mean, data)
         max_index = (np.arange(total_pixels) * 2) + np.argmax(distance, axis=0)
         # Set all values to zero and assign 1 to the indexes informed by argmax
         r = np.full(distance.shape, 0)
         flatten_r = r.ravel()
         flatten_r[max_index] = 1
-        r = flatten_r.reshape(distance.shape)
+        r = flatten_r.reshape(distance.T.shape).T
         return r
 
     def update(self, k, r, input_data, old_mean):
@@ -39,7 +33,8 @@ class KMeans:
         data = input_data.reshape(total_pixels, c)
         new_mean = np.empty(old_mean.shape)
         for i in range(k):
-            new_mean[i] = np.sum(r[i] * data.T) / np.sum(r[i])
+            masking = r[i] * data.T
+            new_mean[i] = np.sum(masking, axis=1) / np.sum(r[i])
         return new_mean
 
     def calculate_distortion(self, k, r, mean, input_data):
@@ -48,13 +43,14 @@ class KMeans:
         data = input_data.reshape(total_pixels, c)
         distance = self.calculate_distance(k, mean, data)
         distortion = np.sum(np.multiply(distance, r))
-        return distortion, distance
+        return abs(distortion)
 
     def calculate_distance(self, k, mean, flat_data):
         total_pixels, c = flat_data.shape
         distance = np.empty((k, total_pixels))
         for i in range(k):
-            distance[i] = np.sum((flat_data - mean[i]) ** 2)
+            d = (flat_data - mean[i]) ** 2
+            distance[i] = np.sum(d, axis=1)
         return distance
 
     def segment_image(self, k, r, input_data):
@@ -76,26 +72,25 @@ class KMeans:
 
         # Train data, assuming convergen4ce criteria is logLikelihood = 0
         height, width, channels = input_data.shape
-        old_mean, distance = self.initialize(k, input_data)
+        old_mean = self.initialize_mean(k, height, width, input_data)
         while distortion != 0:
-            r = self.assignment(k, distance, old_mean, input_data)
+            r = self.assignment(k, old_mean, input_data)
             output = self.segment_image(k, r, input_data)
             # Check for convergence and output the model and the file
-            distortion, distance = self.calculate_distortion(k, r, old_mean, input_data)
-            diff = old_distortion - distortion
+            distortion = self.calculate_distortion(k, r, old_mean, input_data)
+            diff = distortion - old_distortion
             if verbose:
                 plt.imshow(output[0] / 255)
                 plt.pause(0.1)
                 plt.draw()
                 print(diff)
-            # if diff < delta:
-            #     patience_counter += 1
-            # else:
-            #     patience_counter = 0
-            #     old_distortion = distortion
-            # if patience_counter > patience:
-            #     modelObject = {"means": old_mean.tolist()}
-            #     return modelObject, output
-
+            if diff < delta:
+                patience_counter += 1
+            else:
+                patience_counter = 0
+                old_distortion = distortion
+            if patience_counter > patience:
+                modelObject = {"means": old_mean.tolist()}
+                return modelObject, output
             mean = self.update(k, r, input_data, old_mean)
             old_mean = mean

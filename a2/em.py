@@ -103,11 +103,10 @@ class EM:
         segmentedImageInverted = np.multiply(inputData, maskedImageInverted)
         return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
 
-    def run(self, k, inputData, initial_params=None, patience=5, delta=1e-6, verbose=False):
+    def run(self, k, inputData, seed_mean=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
         assert isinstance(inputData, np.ndarray)
         assert len(inputData.shape) == 3
-        assert (initial_params is None) or (initial_params is not None and len(initial_params) == 3)
 
         oldLogLikelihood = 1000000
         logLikelihood = 1000000
@@ -115,7 +114,8 @@ class EM:
 
         # Train data, assuming convergen4ce criteria is logLikelihood = 0
         height, width, channels = inputData.shape
-        old_mean, old_cov, old_mix = self.initialize(k, inputData) if initial_params is None else initial_params
+        _, old_cov, old_mix = self.initialize(k, inputData)
+        old_mean = self.initializeMean(k, height, width, inputData) if seed_mean is not None else np.asarray(seed_mean)
         while logLikelihood != 0:
             try:
                 logLikelihood = self.evaluateLogLikelihood(k, inputData, old_mean, old_cov, old_mix)
