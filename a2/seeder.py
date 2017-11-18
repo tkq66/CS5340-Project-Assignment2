@@ -1,4 +1,4 @@
-from cv2 import calcHist
+from cv2 import calcHist, kmeans, TERM_CRITERIA_EPS, TERM_CRITERIA_MAX_ITER, KMEANS_RANDOM_CENTERS
 from k_means import KMeans
 import numpy as np
 
@@ -25,9 +25,8 @@ class Seeder:
         h, w, c = image.shape
         assert R > self.__k
         assert R < ((h * w) / self.__k)
-        print(((h * w) / self.__k))
 
-        im_color = ("r", "g", "b")
+        im_color = ("b", "g", "r")
         hist_color = ("b", "g", "r")
         peaks = []
         for i, color in enumerate(hist_color):
@@ -42,21 +41,31 @@ class Seeder:
         ranked_peaks = sorted(peaks, key=lambda x: x[1], reverse=True)
         for i in range(self.__k):
             intensity, frequency, color = ranked_peaks[i]
-            im_channel = im_color.index(color)
+            im_channel = hist_color.index(color)
             peak_pixels_index = np.where(image[:, :, im_channel] == intensity)
             peak_pixels = image[peak_pixels_index]
             seed_mean[i] = np.average(peak_pixels, axis=0)
         return seed_mean
 
     def ilea_whelan_quantization(self, image, R, quantization_level, seed_mean=None, patience=5, delta=1e-6, verbose=False):
-        km = KMeans()
-        _, quantized_image = km.run(quantization_level, image, quantize=True, seed_mean=seed_mean, patience=patience, delta=delta, verbose=True)
-        raise ValueError("FDS")
+        quantized_image = self.__get_color_quantized_image(image, quantization_level)
         seed_mean = self.ilea_whelan_heuristic(quantized_image, R)
-        return seed_mean
+        return seed_mean, quantized_image
 
     def __get_histogram(self, image, channel_index):
         bin_count = 256
         hist_range = [0, 256]
         hist = calcHist([image], [channel_index], None, [bin_count], hist_range)
         return hist.ravel()
+
+    def __get_color_quantized_image(self, image, quantization_level):
+        transformed_image = np.float32(image)
+        # define criteria, number of clusters(K) and apply kmeans()
+        criteria = (TERM_CRITERIA_EPS + TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        ret, label, center = kmeans(transformed_image, quantization_level, None, criteria, 10, KMEANS_RANDOM_CENTERS)
+
+        # Now convert back into uint8, and make original image
+        center = np.uint8(center)
+        res = center[label.flatten()]
+        quant = res.reshape((image.shape))
+        return quant

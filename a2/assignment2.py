@@ -1,9 +1,11 @@
-from cv2 import calcHist, equalizeHist, imread, imwrite
+from cv2 import calcHist, imread, imwrite
 from em import EM
 import json
+from k_means import KMeans
 import matplotlib.pyplot as plt
 from sys import argv
 from seeder import Seeder
+from utils import process
 import uuid
 
 
@@ -47,19 +49,39 @@ def plot_histogram_full(image, bin_count, hist_range):
 
 def main():
     file_name = argv[1]
-    input_data = imread(file_name)
-    # increase_contrast_img = equalizeHist(input_data)
+    raw_input_data = imread(file_name)
+
+    preprocessing_info = {
+        "type": ["blur"],
+        "kernel": [(5, 5)]
+    }
+    input_data = process(raw_input_data, preprocessing_info)
+    color_quantization = 4
 
     mean_seeder = Seeder(k)
-    init_mean = mean_seeder.ilea_whelan_heuristic(input_data, k + 1)
-    # seed_mean = mean_seeder.naive_k_means(input_data, seed_mean=init_mean)
-    seed_mean = mean_seeder.ilea_whelan_quantization(input_data, 10, 64, seed_mean=init_mean)
+    seed_mean, quantized_image = mean_seeder.ilea_whelan_quantization(input_data, k + 5, color_quantization)
+
+    postprocessing_info = {
+        "type": ["blur", "max", "median"],
+        "kernel": [(5, 5), (2, 2), 5]
+    }
 
     em = EM()
-    em_model_object, images = em.run(k, input_data, seed_mean=seed_mean, verbose=True)
+    em_model_object, image = em.run(k,
+                                    input_data,
+                                    seed_mean=seed_mean,
+                                    postprocessing_info=postprocessing_info,
+                                    verbose=True)
+
+    # km = KMeans()
+    # em_model_object, image = km.run(k,
+    #                                 input_data,
+    #                                 seed_mean=seed_mean,
+    #                                 postprocessing_info=postprocessing_info,
+    #                                 verbose=True)
 
     output_dict_to_json("model.json", em_model_object)
-    output_segmentation(file_name, images)
+    output_segmentation(file_name, image)
 
 
 if __name__ == "__main__":

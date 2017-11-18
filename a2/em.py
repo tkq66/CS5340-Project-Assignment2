@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
+from utils import process
 
 
 class EM:
@@ -82,7 +83,7 @@ class EM:
 
         return -logLikelihood
 
-    def segmentImage(self, k, inputData, mean, cov):
+    def segmentImage(self, k, inputData, mean, cov, postprocessing_info=None):
         h, w, c = inputData.shape
         totalPixels = h * w
         formattedInput = inputData.reshape(totalPixels, c).astype(np.float64)
@@ -95,15 +96,15 @@ class EM:
         pixelsClassAssignment = np.argmax(rawKImageClassProb, axis=0)
         # Black and white mask
         mask = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-        maskInverted = np.array([[1.0, 1.0, 1.0], [0.0, 0.0, 0.0]])
         # Apply the mask of k onto the pixel
-        maskedImage = mask[pixelsClassAssignment].reshape(inputData.shape)
-        maskedImageInverted = maskInverted[pixelsClassAssignment].reshape(inputData.shape)
+        rawMaskedImage = mask[pixelsClassAssignment].reshape(inputData.shape)
+        maskedImage = process(rawMaskedImage, postprocessing_info) if postprocessing_info is not None else rawMaskedImage
+        maskedImageInverted = 1 - maskedImage.astype(np.uint8)
         segmentedImage = np.multiply(inputData, maskedImage)
         segmentedImageInverted = np.multiply(inputData, maskedImageInverted)
         return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
 
-    def run(self, k, inputData, seed_mean=None, patience=5, delta=1e-6, verbose=False):
+    def run(self, k, inputData, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
         assert isinstance(inputData, np.ndarray)
         assert len(inputData.shape) == 3
@@ -115,7 +116,7 @@ class EM:
         # Train data, assuming convergen4ce criteria is logLikelihood = 0
         height, width, channels = inputData.shape
         _, old_cov, old_mix = self.initialize(k, inputData)
-        old_mean = self.initializeMean(k, height, width, inputData) if seed_mean is not None else np.asarray(seed_mean)
+        old_mean = self.initializeMean(k, height, width, inputData) if seed_mean is None else np.asarray(seed_mean)
         while True:
             try:
                 logLikelihood = self.evaluateLogLikelihood(k, inputData, old_mean, old_cov, old_mix)
@@ -125,10 +126,10 @@ class EM:
                 old_cov = self.initializeCov(k, channels)
                 continue
 
-            output = self.segmentImage(k, inputData, old_mean, old_cov)
+            output = self.segmentImage(k, inputData, old_mean, old_cov, postprocessing_info=postprocessing_info)
 
             # Check for convergence and output the model and the file
-            diff = oldLogLikelihood - logLikelihood
+            diff = abs(oldLogLikelihood - logLikelihood)
             if verbose:
                 plt.imshow(output[0] / 255)
                 plt.pause(0.1)

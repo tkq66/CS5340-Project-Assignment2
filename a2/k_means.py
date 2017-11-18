@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+from utils import process
 
 
 class KMeans:
@@ -38,7 +39,6 @@ class KMeans:
                 new_mean[i] = old_mean[i]
                 continue
             masking = r[:, i] * data.T
-            # assignment_sum += 1 if assignment_sum == 0 else 0
             new_mean[i] = np.sum(masking, axis=1) / np.sum(r[:, i])
         return new_mean
 
@@ -58,20 +58,16 @@ class KMeans:
             distance[i] = np.sum(d, axis=1)
         return distance
 
-    def segment_image(self, k, r, input_data):
+    def segment_image(self, k, r, input_data, postprocessing_info=None):
         mask = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-        maskedImage = mask[r[0]].reshape(input_data.shape)
-        maskedImageInverted = mask[r[1]].reshape(input_data.shape)
+        rawMaskedImage = mask[r.T[0]].reshape(input_data.shape)
+        maskedImage = process(rawMaskedImage, postprocessing_info) if postprocessing_info is not None else rawMaskedImage
+        maskedImageInverted = 1 - maskedImage.astype(np.uint8)
         segmentedImage = np.multiply(input_data, maskedImage)
         segmentedImageInverted = np.multiply(input_data, maskedImageInverted)
         return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
 
-    def quantize_image(self, k, r, mean, input_data):
-        assignment_index = np.argmax(r, axis=1)
-        quantized_image = mean[assignment_index].reshape(input_data.shape)
-        return [quantized_image]
-
-    def run(self, k, input_data, quantize=False, seed_mean=None, patience=5, delta=1e-6, verbose=False):
+    def run(self, k, input_data, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
         assert isinstance(input_data, np.ndarray)
         assert len(input_data.shape) == 3
@@ -82,10 +78,10 @@ class KMeans:
 
         # Train data, assuming convergen4ce criteria is logLikelihood = 0
         height, width, channels = input_data.shape
-        old_mean = self.initialize_mean(k, height, width, input_data) if seed_mean is not None else np.asarray(seed_mean)
+        old_mean = self.initialize_mean(k, height, width, input_data) if seed_mean is None else np.asarray(seed_mean)
         while True:
             r = self.assignment(k, old_mean, input_data)
-            output = self.segment_image(k, r, input_data) if not quantize else self.quantize_image(k, r, old_mean, input_data)
+            output = self.segment_image(k, r, input_data, postprocessing_info=postprocessing_info)
             # Check for convergence and output the model and the file
             distortion = self.calculate_distortion(k, r, old_mean, input_data)
             diff = abs(distortion - old_distortion)
