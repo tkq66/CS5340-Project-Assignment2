@@ -8,19 +8,17 @@ class KMeans:
     def __init__(self):
         pass
 
-    def initialize_mean(self, k, height, width, input_data):
+    def initialize_mean(self, k, n, input_data):
         # Initialize the mean
-        h = np.random.choice(np.arange(height), k, replace=False)
-        w = np.random.choice(np.arange(width), k, replace=False)
-        return input_data[h, w, :]
+        i = np.random.choice(np.arange(n), k, replace=False)
+        return input_data[i, :]
 
     def assignment(self, k, mean, input_data):
-        h, w, c = input_data.shape
-        total_pixels = h * w
-        data = input_data.reshape(total_pixels, c)
+        n, c = input_data.shape
+        data = input_data.copy()
         # Choose the enarest distance
         distance = self.calculate_distance(k, mean, data)
-        max_index = (np.arange(total_pixels) * k) + np.argmax(distance, axis=0)
+        max_index = (np.arange(n) * k) + np.argmax(distance, axis=0)
         # Set all values to zero and assign 1 to the indexes informed by argmax
         r = np.full(distance.shape, 0)
         flatten_r = r.ravel()
@@ -29,9 +27,7 @@ class KMeans:
         return r
 
     def update(self, k, r, input_data, old_mean):
-        h, w, c = input_data.shape
-        total_pixels = h * w
-        data = input_data.reshape(total_pixels, c)
+        data = input_data.copy()
         new_mean = np.empty(old_mean.shape)
         for i in range(k):
             assignment_sum = np.sum(r[:, i])
@@ -43,52 +39,75 @@ class KMeans:
         return new_mean
 
     def calculate_distortion(self, k, r, mean, input_data):
-        h, w, c = input_data.shape
-        total_pixels = h * w
-        data = input_data.reshape(total_pixels, c)
+        data = input_data.copy()
         distance = self.calculate_distance(k, mean, data)
         distortion = np.sum(np.multiply(distance, r.T))
         return abs(distortion)
 
-    def calculate_distance(self, k, mean, flat_data):
-        total_pixels, c = flat_data.shape
+    def calculate_distance(self, k, mean, data):
+        total_pixels, c = data.shape
         distance = np.empty((k, total_pixels))
         for i in range(k):
-            d = (flat_data - mean[i]) ** 2
+            d = (data - mean[i]) ** 2
             distance[i] = np.sum(d, axis=1)
         return distance
 
-    def segment_image(self, k, r, input_data, postprocessing_info=None):
+    def get_distortion(self, k, mean, image):
+        input_data = None
+        if len(image.shape) == 3:
+            h, w, c = image.shape
+            input_data = image.reshape(h * w, c)
+        else:
+            input_data = image
+        r = self.assignment(k, mean, input_data)
+        distortion = self.calculate_distortion(k, r, mean, input_data)
+        return distortion
+
+    def segment_image(self, k, r, input_data, img_shape, postprocessing_info=None):
+        if img_shape is None:
+            return
+
+        image = input_data.reshape(img_shape)
         mask = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-        rawMaskedImage = mask[r.T[0]].reshape(input_data.shape)
+        rawMaskedImage = mask[r.T[0]].reshape(image.shape)
         maskedImage = process(rawMaskedImage, postprocessing_info) if postprocessing_info is not None else rawMaskedImage
         maskedImageInverted = 1 - maskedImage.astype(np.uint8)
-        segmentedImage = np.multiply(input_data, maskedImage)
-        segmentedImageInverted = np.multiply(input_data, maskedImageInverted)
+        segmentedImage = np.multiply(image, maskedImage)
+        segmentedImageInverted = np.multiply(image, maskedImageInverted)
         return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
 
-    def run(self, k, input_data, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
+    def run(self, k, image, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
-        assert isinstance(input_data, np.ndarray)
-        assert len(input_data.shape) == 3
+        assert isinstance(image, np.ndarray)
+        assert (len(image.shape) == 3) or (len(image.shape) == 2)
+
+        input_data = None
+        image_shape = None
+        if len(image.shape) == 3:
+            height, width, channels = image.shape
+            image_shape = image.shape
+            input_data = image.reshape(height * width, channels)
+        else:
+            input_data = image
 
         old_distortion = 1000000
         distortion = 1000000
         patience_counter = 0
 
         # Train data, assuming convergen4ce criteria is logLikelihood = 0
-        height, width, channels = input_data.shape
-        old_mean = self.initialize_mean(k, height, width, input_data) if seed_mean is None else np.asarray(seed_mean)
+        n, c = input_data.shape
+        old_mean = self.initialize_mean(k, n, input_data) if seed_mean is None else np.asarray(seed_mean)
         while True:
             r = self.assignment(k, old_mean, input_data)
-            output = self.segment_image(k, r, input_data, postprocessing_info=postprocessing_info)
+            output = self.segment_image(k, r, input_data, image_shape, postprocessing_info=postprocessing_info)
             # Check for convergence and output the model and the file
             distortion = self.calculate_distortion(k, r, old_mean, input_data)
             diff = abs(distortion - old_distortion)
-            if verbose:
+            if verbose and image_shape is not None:
                 plt.imshow(output[0] / 255)
                 plt.pause(0.1)
                 plt.draw()
+            if verbose:
                 print(diff)
             if diff < delta:
                 patience_counter += 1
