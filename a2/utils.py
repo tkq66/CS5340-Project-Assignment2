@@ -1,4 +1,4 @@
-from cv2 import blur, GaussianBlur, medianBlur
+from cv2 import blur, medianBlur
 import numpy as np
 
 

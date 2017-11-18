@@ -1,6 +1,5 @@
 from cv2 import calcHist, kmeans, TERM_CRITERIA_EPS, TERM_CRITERIA_MAX_ITER, KMEANS_RANDOM_CENTERS
 from k_means import KMeans
-from math import sqrt
 import numpy as np
 
 
