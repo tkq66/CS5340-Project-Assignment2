@@ -34,6 +34,7 @@ class KMeans:
         new_mean = np.empty(old_mean.shape)
         for i in range(k):
             masking = r[i] * data.T
+            print(masking)
             new_mean[i] = np.sum(masking, axis=1) / np.sum(r[i])
         return new_mean
 
@@ -61,7 +62,11 @@ class KMeans:
         segmentedImageInverted = np.multiply(input_data, maskedImageInverted)
         return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
 
-    def run(self, k, input_data, seed_mean=None, patience=5, delta=1e-6, verbose=False):
+    def quantize_image(self, k, r, mean, input_data):
+        quantized_image = mean[r[0]].reshape(input_data.shape)
+        return [quantized_image]
+
+    def run(self, k, input_data, quantize=False, seed_mean=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
         assert isinstance(input_data, np.ndarray)
         assert len(input_data.shape) == 3
@@ -75,7 +80,7 @@ class KMeans:
         old_mean = self.initialize_mean(k, height, width, input_data) if seed_mean is not None else np.asarray(seed_mean)
         while True:
             r = self.assignment(k, old_mean, input_data)
-            output = self.segment_image(k, r, input_data)
+            output = self.segment_image(k, r, input_data) if not quantize else self.quantize_image(k, r, old_mean, input_data)
             # Check for convergence and output the model and the file
             distortion = self.calculate_distortion(k, r, old_mean, input_data)
             diff = distortion - old_distortion

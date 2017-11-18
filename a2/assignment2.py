@@ -51,8 +51,9 @@ def main():
     # increase_contrast_img = equalizeHist(input_data)
 
     mean_seeder = Seeder(k)
-    init_mean = mean_seeder.ilea_whelan_heuristic(input_data, k + 5)
-    seed_mean = mean_seeder.naive_k_means(input_data, seed_mean=init_mean)
+    init_mean = mean_seeder.ilea_whelan_heuristic(input_data, k + 1)
+    # seed_mean = mean_seeder.naive_k_means(input_data, seed_mean=init_mean)
+    seed_mean = mean_seeder.ilea_whelan_quantization(input_data, 10, 64, seed_mean=init_mean)
 
     em = EM()
     em_model_object, images = em.run(k, input_data, seed_mean=seed_mean, verbose=True)
