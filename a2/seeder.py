@@ -60,7 +60,6 @@ class Seeder:
 
         h, w, c = image.shape
         image_data = image.reshape(h * w, c)
-        np.random.shuffle(image_data)
         data_split = np.array_split(image_data, J)
         candidate_mean_list = np.empty((J, self.__k, c))
         for j in range(J):

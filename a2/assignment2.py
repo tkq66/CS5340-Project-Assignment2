@@ -59,7 +59,8 @@ def main():
     color_quantization = 4
 
     mean_seeder = Seeder(k)
-    seed_mean, quantized_image = mean_seeder.ilea_whelan_quantization(input_data, k + 5, color_quantization)
+    # seed_mean, quantized_image = mean_seeder.ilea_whelan_quantization(input_data, k + 5, color_quantization)
+    seed_mean = mean_seeder.bardlley_fayaad(input_data, 10)
 
     postprocessing_info = {
         "type": ["blur", "max", "median"],
@@ -67,20 +68,20 @@ def main():
     }
 
     em = EM()
-    em_model_object, image = em.run(k,
-                                    input_data,
-                                    seed_mean=seed_mean,
-                                    postprocessing_info=postprocessing_info,
-                                    verbose=True)
+    model_object, image = em.run(k,
+                                 input_data,
+                                 seed_mean=seed_mean,
+                                 postprocessing_info=postprocessing_info,
+                                 verbose=True)
 
     # km = KMeans()
-    # em_model_object, image = km.run(k,
-    #                                 input_data,
-    #                                 seed_mean=seed_mean,
-    #                                 postprocessing_info=postprocessing_info,
-    #                                 verbose=True)
+    # model_object, image = km.run(k,
+    #                              input_data,
+    #                              seed_mean=seed_mean,
+    #                              postprocessing_info=None,
+    #                              verbose=True)
 
-    output_dict_to_json("model.json", em_model_object)
+    output_dict_to_json("model.json", model_object)
     output_segmentation(file_name, image)
 
 
