@@ -19,12 +19,12 @@ class KMeans:
         data = input_data.reshape(total_pixels, c)
         # Choose the enarest distance
         distance = self.calculate_distance(k, mean, data)
-        max_index = (np.arange(total_pixels) * 2) + np.argmax(distance, axis=0)
+        max_index = (np.arange(total_pixels) * k) + np.argmax(distance, axis=0)
         # Set all values to zero and assign 1 to the indexes informed by argmax
         r = np.full(distance.shape, 0)
         flatten_r = r.ravel()
         flatten_r[max_index] = 1
-        r = flatten_r.reshape(distance.T.shape).T
+        r = flatten_r.reshape(distance.T.shape)
         return r
 
     def update(self, k, r, input_data, old_mean):
@@ -33,9 +33,13 @@ class KMeans:
         data = input_data.reshape(total_pixels, c)
         new_mean = np.empty(old_mean.shape)
         for i in range(k):
-            masking = r[i] * data.T
-            print(masking)
-            new_mean[i] = np.sum(masking, axis=1) / np.sum(r[i])
+            assignment_sum = np.sum(r[:, i])
+            if assignment_sum == 0:
+                new_mean[i] = old_mean[i]
+                continue
+            masking = r[:, i] * data.T
+            # assignment_sum += 1 if assignment_sum == 0 else 0
+            new_mean[i] = np.sum(masking, axis=1) / np.sum(r[:, i])
         return new_mean
 
     def calculate_distortion(self, k, r, mean, input_data):
@@ -43,7 +47,7 @@ class KMeans:
         total_pixels = h * w
         data = input_data.reshape(total_pixels, c)
         distance = self.calculate_distance(k, mean, data)
-        distortion = np.sum(np.multiply(distance, r))
+        distortion = np.sum(np.multiply(distance, r.T))
         return abs(distortion)
 
     def calculate_distance(self, k, mean, flat_data):
@@ -63,7 +67,8 @@ class KMeans:
         return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
 
     def quantize_image(self, k, r, mean, input_data):
-        quantized_image = mean[r[0]].reshape(input_data.shape)
+        assignment_index = np.argmax(r, axis=1)
+        quantized_image = mean[assignment_index].reshape(input_data.shape)
         return [quantized_image]
 
     def run(self, k, input_data, quantize=False, seed_mean=None, patience=5, delta=1e-6, verbose=False):
@@ -83,7 +88,7 @@ class KMeans:
             output = self.segment_image(k, r, input_data) if not quantize else self.quantize_image(k, r, old_mean, input_data)
             # Check for convergence and output the model and the file
             distortion = self.calculate_distortion(k, r, old_mean, input_data)
-            diff = distortion - old_distortion
+            diff = abs(distortion - old_distortion)
             if verbose:
                 plt.imshow(output[0] / 255)
                 plt.pause(0.1)
