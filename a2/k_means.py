@@ -66,7 +66,6 @@ class KMeans:
     def segment_image(self, k, r, input_data, img_shape, postprocessing_info=None):
         if img_shape is None:
             return
-
         image = input_data.reshape(img_shape)
         mask = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
         rawMaskedImage = mask[r.T[0]].reshape(image.shape)
@@ -82,10 +81,10 @@ class KMeans:
         assert (len(image.shape) == 3) or (len(image.shape) == 2)
 
         input_data = None
-        image_shape = None
+        img_shape = None
         if len(image.shape) == 3:
             height, width, channels = image.shape
-            image_shape = image.shape
+            img_shape = image.shape
             input_data = image.reshape(height * width, channels)
         else:
             input_data = image
@@ -99,11 +98,12 @@ class KMeans:
         old_mean = self.initialize_mean(k, n, input_data) if seed_mean is None else np.asarray(seed_mean)
         while True:
             r = self.assignment(k, old_mean, input_data)
-            output = self.segment_image(k, r, input_data, image_shape, postprocessing_info=postprocessing_info)
-            # Check for convergence and output the model and the file
+            output = self.segment_image(k, r, input_data, img_shape, postprocessing_info=postprocessing_info)
             distortion = self.calculate_distortion(k, r, old_mean, input_data)
+
+            # Check for convergence and output the model and the file
             diff = abs(distortion - old_distortion)
-            if verbose and image_shape is not None:
+            if verbose and img_shape is not None:
                 plt.imshow(output[0] / 255)
                 plt.pause(0.1)
                 plt.draw()

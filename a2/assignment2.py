@@ -59,8 +59,8 @@ def main():
     color_quantization = 4
 
     mean_seeder = Seeder(k)
-    # seed_mean, quantized_image = mean_seeder.ilea_whelan_quantization(input_data, k + 5, color_quantization)
-    seed_mean = mean_seeder.bardlley_fayaad(input_data, 10)
+    seed_mean, quantized_image = mean_seeder.ilea_whelan_quantization(input_data, k + 5, color_quantization)
+    # seed_mean = mean_seeder.bardlley_fayaad(input_data, 10)
 
     postprocessing_info = {
         "type": ["blur", "max", "median"],
