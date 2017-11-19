@@ -50,6 +50,7 @@ def plot_histogram_full(image, bin_count, hist_range):
 def main():
     file_name = argv[1]
     raw_input_data = imread(file_name)
+    use_spatial_representation = True
 
     preprocessing_info = {
         "type": ["blur"],
@@ -70,8 +71,9 @@ def main():
     em = EM()
     model_object, image = em.run(k,
                                  input_data,
-                                 seed_mean=seed_mean,
-                                 postprocessing_info=postprocessing_info,
+                                 incl_spatial_relations=use_spatial_representation,
+                                 seed_mean=None,
+                                 postprocessing_info=None,
                                  verbose=True)
 
     # km = KMeans()

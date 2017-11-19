@@ -43,3 +43,23 @@ def max_pool(bw_image, kernel):
             new_color = np.full(c, rounded)
             pooled_image[h_start:h_end, w_start:w_end] = new_color
     return pooled_image
+
+
+def conv_3d_to_5d(image):
+    h, w, c = image.shape
+    n = 0
+    new_data = np.empty((h * w, c + 2))
+    for i in range(h):
+        for j in range(w):
+            new_data[n] = (i, j, image[i, j, 0], image[i, j, 1], image[i, j, 2])
+            n += 1
+    return new_data
+
+
+def conv_5d_to_3d(data, shape):
+    n, c_aux = data.shape
+    image = np.empty(shape)
+    for i in range(n):
+        h, w, c1, c2, c3 = data[i]
+        image[int(h), int(w)] = np.array([c1, c2, c3])
+    return image

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
-from utils import process
+from utils import process, conv_3d_to_5d, conv_5d_to_3d
 
 
 class EM:
@@ -27,9 +27,9 @@ class EM:
         return np.repeat((1 / k), k)
 
     def initialize(self, k, input_data):
-        n, channels = input_data.shape
+        n, c = input_data.shape
         init_mean = self.initialize_mean(k, n, input_data)
-        init_cov = self.initialize_cov(k, channels)
+        init_cov = self.initialize_cov(k, c)
         init_mix_coeff = self.initialize_mix(k)
         return init_mean, init_cov, init_mix_coeff
 
@@ -74,11 +74,15 @@ class EM:
 
         return -log_likelihood
 
-    def segment_image(self, k, input_data, img_shape, mean, cov, postprocessing_info=None):
+    def segment_image(self, k, input_data, img_shape, mean, cov, incl_spatial_relations=False, postprocessing_info=None):
         if img_shape is None:
             return
         n, c = input_data.shape
-        image = input_data.reshape(img_shape)
+        image = None
+        if incl_spatial_relations:
+            image = conv_5d_to_3d(input_data, img_shape)
+        else:
+            image = input_data.reshape(img_shape)
         # For each pixel, calculate probability for each k
         raw_k_image_class_prob = np.empty((k, n))
         for i in range(k):
@@ -95,7 +99,7 @@ class EM:
         segmented_image_inverted = np.multiply(image, masked_image_inverted)
         return masked_image * 255, masked_image_inverted * 255, segmented_image, segmented_image_inverted
 
-    def run(self, k, image, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
+    def run(self, k, image, incl_spatial_relations=False, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
         assert isinstance(image, np.ndarray)
         assert (len(image.shape) == 3) or (len(image.shape) == 2)
@@ -105,7 +109,10 @@ class EM:
         if len(image.shape) == 3:
             height, width, channels = image.shape
             img_shape = image.shape
-            input_data = image.reshape(height * width, channels)
+            if incl_spatial_relations:
+                input_data = conv_3d_to_5d(image)
+            else:
+                input_data = image.reshape(height * width, channels)
         else:
             input_data = image
 
@@ -115,7 +122,8 @@ class EM:
 
         # Train data, assuming convergen4ce criteria is log_likelihood = 0
         n, c = input_data.shape
-        _, old_cov, old_mix = self.initialize(k, input_data)
+        old_cov = self.initialize_cov(k, c)
+        old_mix = self.initialize_mix(k)
         old_mean = self.initialize_mean(k, n, input_data) if seed_mean is None else np.asarray(seed_mean)
         while True:
             try:
@@ -126,7 +134,7 @@ class EM:
                 old_cov = self.initialize_cov(k, channels)
                 continue
 
-            output = self.segment_image(k, input_data, img_shape, old_mean, old_cov, postprocessing_info=postprocessing_info)
+            output = self.segment_image(k, input_data, img_shape, old_mean, old_cov, incl_spatial_relations=incl_spatial_relations, postprocessing_info=postprocessing_info)
 
             # Check for convergence and output the model and the file
             diff = abs(old_log_likelihood - log_likelihood)
