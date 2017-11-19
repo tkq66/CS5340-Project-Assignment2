@@ -68,12 +68,12 @@ class KMeans:
             return
         image = input_data.reshape(img_shape)
         mask = np.array([[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]])
-        rawMaskedImage = mask[r.T[0]].reshape(image.shape)
-        maskedImage = process(rawMaskedImage, postprocessing_info) if postprocessing_info is not None else rawMaskedImage
-        maskedImageInverted = 1 - maskedImage.astype(np.uint8)
-        segmentedImage = np.multiply(image, maskedImage)
-        segmentedImageInverted = np.multiply(image, maskedImageInverted)
-        return maskedImage * 255, maskedImageInverted * 255, segmentedImage, segmentedImageInverted
+        raw_masked_image = mask[r.T[0]].reshape(image.shape)
+        masked_image = process(raw_masked_image, postprocessing_info) if postprocessing_info is not None else raw_masked_image
+        masked_image_inverted = 1 - masked_image.astype(np.uint8)
+        segmented_image = np.multiply(image, masked_image)
+        segmented_image_inverted = np.multiply(image, masked_image_inverted)
+        return masked_image * 255, masked_image_inverted * 255, segmented_image, segmented_image_inverted
 
     def run(self, k, image, seed_mean=None, postprocessing_info=None, patience=5, delta=1e-6, verbose=False):
         assert k > 0
@@ -115,8 +115,8 @@ class KMeans:
                 patience_counter = 0
                 old_distortion = distortion
             if patience_counter > patience:
-                modelObject = {"means": old_mean.tolist()}
-                return modelObject, output
+                model_object = {"means": old_mean.tolist()}
+                return model_object, output
 
             mean = self.update(k, r, input_data, old_mean)
             old_mean = mean
