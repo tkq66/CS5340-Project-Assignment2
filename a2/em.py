@@ -1,3 +1,4 @@
+import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.stats import multivariate_normal
@@ -68,6 +69,7 @@ class EM:
     def evaluate_log_likelihood(self, k, input_data, mean, cov, mix_coeff):
         n, c = input_data.shape
         aux_input = np.zeros(n)
+
         for i in range(k):
             aux_input += mix_coeff[i] * multivariate_normal.pdf(input_data, mean=mean[i], cov=cov[i])
         log_likelihood = np.sum(np.log(aux_input))
@@ -121,10 +123,13 @@ class EM:
         patience_counter = 0
 
         # Train data, assuming convergen4ce criteria is log_likelihood = 0
+        start_time = datetime.datetime.now()
+
         n, c = input_data.shape
         old_cov = self.initialize_cov(k, c)
         old_mix = self.initialize_mix(k)
         old_mean = self.initialize_mean(k, n, input_data) if seed_mean is None else np.asarray(seed_mean)
+        log_likelihood_history = []
         while True:
             try:
                 log_likelihood = self.evaluate_log_likelihood(k, input_data, old_mean, old_cov, old_mix)
@@ -134,11 +139,12 @@ class EM:
                 old_cov = self.initialize_cov(k, channels)
                 continue
 
-            output = self.segment_image(k, input_data, img_shape, old_mean, old_cov, incl_spatial_relations=incl_spatial_relations, postprocessing_info=postprocessing_info)
+            log_likelihood_history.append(log_likelihood)
 
             # Check for convergence and output the model and the file
             diff = abs(old_log_likelihood - log_likelihood)
             if verbose and img_shape is not None:
+                output = self.segment_image(k, input_data, img_shape, old_mean, old_cov, incl_spatial_relations=incl_spatial_relations, postprocessing_info=postprocessing_info)
                 plt.imshow(output[0] / 255)
                 plt.pause(0.1)
                 plt.draw()
@@ -150,8 +156,11 @@ class EM:
                 patience_counter = 0
                 old_log_likelihood = log_likelihood
             if patience_counter > patience:
+                output = self.segment_image(k, input_data, img_shape, old_mean, old_cov, incl_spatial_relations=incl_spatial_relations, postprocessing_info=postprocessing_info)
                 model_object = {"means": old_mean.tolist(), "cov": old_cov.tolist(), "mix": old_mix.tolist()}
-                return model_object, output
+                end_time = datetime.datetime.now()
+                time_diff = (end_time - start_time).total_seconds()
+                return time_diff, log_likelihood_history, model_object, output
 
             responsibility = self.expectation(k, input_data, old_mean, old_cov, old_mix)
             mean, cov, mix = self.maximization(k, responsibility, input_data, old_mean)
